@@ -77,13 +77,19 @@ export function notifyClients(eventType = 'DATA_UPDATED') {
 
 app.get('/api/events', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (res.flushHeaders) res.flushHeaders();
 
   // Initial connection heartbeat
   res.write(': connected\n\n');
+
+  const isVercel = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV);
+  if (isVercel) {
+    return res.end();
+  }
+
   sseClients.push(res);
 
   req.on('close', () => {
@@ -1059,6 +1065,11 @@ app.put('/api/settings', (req, res) => {
 
 // Start Express + Vite Server
 async function startServer() {
+  const isVercel = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV);
+  if (isVercel) {
+    return;
+  }
+
   const distPath = path.join(process.cwd(), 'dist');
   const isProduction = process.env.NODE_ENV === 'production' || (fs.existsSync(distPath) && fs.existsSync(path.join(distPath, 'index.html')));
 
@@ -1080,11 +1091,9 @@ async function startServer() {
     app.use(vite.middlewares);
   }
 
-  if (process.env.VERCEL !== '1') {
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🐾 PET WORLD Server running on port ${PORT}`);
-    });
-  }
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🐾 PET WORLD Server running on port ${PORT}`);
+  });
 }
 
 startServer();

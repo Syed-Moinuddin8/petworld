@@ -53,8 +53,10 @@ interface DatabaseSchema {
   settings: AppSettings;
 }
 
-const DB_DIR = process.env.DATA_DIR || path.join(process.cwd(), 'data');
+const isVercelEnv = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV);
+const DB_DIR = process.env.DATA_DIR || (isVercelEnv ? '/tmp' : path.join(process.cwd(), 'data'));
 const DB_FILE = path.join(DB_DIR, 'petworld_db.json');
+const READONLY_DB_FILE = path.join(process.cwd(), 'data', 'petworld_db.json');
 
 class PetWorldDatabase {
   private data: DatabaseSchema;
@@ -435,8 +437,12 @@ class PetWorldDatabase {
 
   private loadInitialData(): DatabaseSchema {
     try {
-      if (fs.existsSync(DB_FILE)) {
-        const raw = fs.readFileSync(DB_FILE, 'utf-8');
+      let fileToRead = DB_FILE;
+      if (!fs.existsSync(fileToRead) && fs.existsSync(READONLY_DB_FILE)) {
+        fileToRead = READONLY_DB_FILE;
+      }
+      if (fs.existsSync(fileToRead)) {
+        const raw = fs.readFileSync(fileToRead, 'utf-8');
         const parsed: DatabaseSchema = JSON.parse(raw);
         // Refresh salaries demo data if old format or missing months
         if (!parsed.salaries || parsed.salaries.length < 50 || parsed.salaries.some((s) => s.month === '2026-09')) {
