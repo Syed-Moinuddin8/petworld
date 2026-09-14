@@ -14,3 +14,18 @@ CREATE TABLE IF NOT EXISTS public.salaries (id TEXT PRIMARY KEY, staff_id TEXT, 
 CREATE TABLE IF NOT EXISTS public.notifications (id TEXT PRIMARY KEY, title TEXT, message TEXT, type TEXT, timestamp BIGINT, read BOOLEAN DEFAULT FALSE, branch_id TEXT);
 CREATE TABLE IF NOT EXISTS public.settings (id TEXT PRIMARY KEY DEFAULT 'app_settings', business_name TEXT, tagline TEXT, head_office_address TEXT, head_office_phone TEXT, gstin TEXT, invoice_prefix TEXT, receipt_footer TEXT, thermal_width TEXT, currency_symbol TEXT, default_tax_rate NUMERIC);
 
+-- Disable Row Level Security (RLS) for public access from anon key
+ALTER TABLE public.branches DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.products DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.branch_inventory DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.suppliers DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.staff DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.purchases DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.purchase_bills DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.purchase_allocations DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sales DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.stock_movements DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.attendance DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.salaries DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.settings DISABLE ROW LEVEL SECURITY;

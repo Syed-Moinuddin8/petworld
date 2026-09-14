@@ -19,7 +19,9 @@ try {
 } catch (err) {
   console.warn('Uploads directory initialization skipped:', err);
 }
-app.use('/uploads', express.static(uploadsDir));
+if (fs.existsSync(uploadsDir)) {
+  app.use('/uploads', express.static(uploadsDir));
+}
 
 // Restore original requested path from Vercel rewrite headers
 app.use((req, res, next) => {
