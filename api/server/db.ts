@@ -32,8 +32,8 @@ import {
   INITIAL_NOTIFICATIONS,
   INITIAL_SETTINGS,
   generateInitialInventory,
-} from './data.js';
-import { resolveProductImageUrl } from './productImages.js';
+} from './data.ts';
+import { resolveProductImageUrl } from './productImages.ts';
 
 interface DatabaseSchema {
   branches: Branch[];

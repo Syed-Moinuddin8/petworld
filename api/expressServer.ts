@@ -1,8 +1,8 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
-import { db } from './server/db.js';
-import { OWNER_USER } from './server/data.js';
+import { db } from './server/db.ts';
+import { OWNER_USER } from './server/data.ts';
 import type { User } from '../src/types';
 
 const app = express();
