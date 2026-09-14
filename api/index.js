@@ -5727,9 +5727,11 @@ var isVercelEnvironment = process.env.VERCEL === "1" || Boolean(process.env.VERC
 if (!isVercelEnvironment) {
   startServer();
 }
-var expressServer_default = app;
+function handler(req, res) {
+  return app(req, res);
+}
 export {
-  expressServer_default as default,
+  handler as default,
   notifyClients
 };
 //# sourceMappingURL=index.js.map
