@@ -1,4 +1,4 @@
-import app from '../expressServer';
+import app from '../expressServer.js';
 
 export default function handler(req: any, res: any) {
   try {
