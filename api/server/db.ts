@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import {
+import type {
   Branch,
   Product,
   BranchInventory,
@@ -17,7 +17,7 @@ import {
   NotificationItem,
   AppSettings,
   User,
-} from '../../src/types.js';
+} from '../../src/types';
 import {
   INITIAL_BRANCHES,
   INITIAL_PRODUCTS,

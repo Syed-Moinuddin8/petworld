@@ -1,4 +1,4 @@
-import {
+import type {
   Branch,
   Product,
   BranchInventory,
@@ -14,7 +14,7 @@ import {
   NotificationItem,
   AppSettings,
   User,
-} from '../src/types.ts';
+} from '../../src/types';
 
 export const INITIAL_SETTINGS: AppSettings = {
   businessName: 'PET WORLD',
