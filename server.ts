@@ -1069,7 +1069,7 @@ app.put('/api/settings', (req, res) => {
 
 // Start Express + Vite Server
 async function startServer() {
-  const isVercel = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV);
+  const isVercel = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV) || Boolean(process.env.VERCEL_REGION) || Boolean(process.env.NOW_REGION);
   if (isVercel) {
     return;
   }
@@ -1101,6 +1101,9 @@ async function startServer() {
   });
 }
 
-startServer();
+const isVercelEnvironment = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV) || Boolean(process.env.VERCEL_REGION) || Boolean(process.env.NOW_REGION);
+if (!isVercelEnvironment) {
+  startServer();
+}
 
 export default app;
