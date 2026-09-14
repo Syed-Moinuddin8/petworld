@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx api/expressServer.ts",
-    "build": "vite build",
+    "build": "vite build && node -e \"import('esbuild').then(e => e.build({ entryPoints: ['api/expressServer.ts'], bundle: true, platform: 'node', format: 'esm', packages: 'external', sourcemap: true, outfile: 'api/index.js' }))\"",
     "start": "node dist/server.cjs",
     "clean": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\"",
     "lint": "tsc --noEmit",
