@@ -65,8 +65,36 @@ class PetWorldDatabase {
   private barcodeIndex: Map<string, Product> = new Map();
 
   constructor() {
-    this.data = this.loadInitialData();
-    this.rebuildBarcodeIndex();
+    try {
+      this.data = this.loadInitialData();
+    } catch (err) {
+      console.error('Error during loadInitialData:', err);
+      this.data = {
+        branches: INITIAL_BRANCHES,
+        products: INITIAL_PRODUCTS.map((p) => ({
+          ...p,
+          imageUrl: p.imageUrl || resolveProductImageUrl(p),
+        })),
+        inventory: generateInitialInventory(),
+        suppliers: INITIAL_SUPPLIERS,
+        staff: INITIAL_STAFF,
+        purchases: INITIAL_PURCHASES,
+        purchaseBills: INITIAL_PURCHASE_BILLS,
+        purchaseAllocations: INITIAL_ALLOCATIONS,
+        sales: INITIAL_SALES,
+        stockMovements: INITIAL_STOCK_MOVEMENTS,
+        attendance: [],
+        salaries: [],
+        salaryAdvances: [],
+        notifications: INITIAL_NOTIFICATIONS,
+        settings: INITIAL_SETTINGS,
+      };
+    }
+    try {
+      this.rebuildBarcodeIndex();
+    } catch (err) {
+      console.error('Error during rebuildBarcodeIndex:', err);
+    }
   }
 
   public rebuildBarcodeIndex(): void {
