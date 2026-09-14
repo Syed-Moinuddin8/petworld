@@ -14,7 +14,7 @@ import {
   NotificationItem,
   AppSettings,
   User,
-} from '../src/types.js';
+} from '../src/types.ts';
 
 export const INITIAL_SETTINGS: AppSettings = {
   businessName: 'PET WORLD',
