@@ -1081,43 +1081,11 @@ app.use('/api', (req, res) => {
   res.status(404).json({ error: `API route not found: ${req.originalUrl || req.url}` });
 });
 
-// Start Express + Vite Server
-async function startServer() {
-  const isVercel = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV) || Boolean(process.env.VERCEL_REGION) || Boolean(process.env.NOW_REGION);
-  if (isVercel) {
-    return;
-  }
-
-  const distPath = path.join(process.cwd(), 'dist');
-  const isProduction = process.env.NODE_ENV === 'production' || (fs.existsSync(distPath) && fs.existsSync(path.join(distPath, 'index.html')));
-
-  if (isProduction) {
-    console.log('📦 Serving production build from dist/');
-    app.use(express.static(distPath));
-    app.get('*', (req, res, next) => {
-      if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
-        return next();
-      }
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  } else {
-    console.log('⚡ Starting Vite development server middleware');
-    const { createServer: createViteServer } = await import('vite');
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  }
-
+// Standalone server listener (only used for local standalone development via STANDALONE=true)
+if (process.env.STANDALONE === 'true') {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🐾 PET WORLD Server running on port ${PORT}`);
   });
-}
-
-const isVercelEnvironment = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV) || Boolean(process.env.VERCEL_REGION) || Boolean(process.env.NOW_REGION);
-if (!isVercelEnvironment) {
-  startServer();
 }
 
 export default function handler(req: any, res: any) {
