@@ -9,7 +9,7 @@
     "start": "node dist/server.cjs",
     "clean": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\"",
     "lint": "tsc --noEmit",
-    "seed:supabase": "tsx scripts/seed-supabase.ts"
+    "seed:supabase": "node ./node_modules/tsx/dist/cli.mjs scripts/seed-supabase.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
