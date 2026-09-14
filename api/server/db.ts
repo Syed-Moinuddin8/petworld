@@ -34,6 +34,7 @@ import {
   generateInitialInventory,
 } from './data.ts';
 import { resolveProductImageUrl } from './productImages.ts';
+import initialSeedJson from '../../data/petworld_db.json';
 
 interface DatabaseSchema {
   branches: Branch[];
@@ -465,13 +466,26 @@ class PetWorldDatabase {
 
   private loadInitialData(): DatabaseSchema {
     try {
-      let fileToRead = DB_FILE;
-      if (!fs.existsSync(fileToRead) && fs.existsSync(READONLY_DB_FILE)) {
-        fileToRead = READONLY_DB_FILE;
+      let parsed: DatabaseSchema | null = null;
+      if (fs.existsSync(DB_FILE)) {
+        try {
+          const raw = fs.readFileSync(DB_FILE, 'utf-8');
+          parsed = JSON.parse(raw);
+        } catch {
+          parsed = null;
+        }
       }
-      if (fs.existsSync(fileToRead)) {
-        const raw = fs.readFileSync(fileToRead, 'utf-8');
-        const parsed: DatabaseSchema = JSON.parse(raw);
+      if (!parsed && fs.existsSync(READONLY_DB_FILE)) {
+        try {
+          const raw = fs.readFileSync(READONLY_DB_FILE, 'utf-8');
+          parsed = JSON.parse(raw);
+        } catch {
+          parsed = null;
+        }
+      }
+      if (!parsed) {
+        parsed = JSON.parse(JSON.stringify(initialSeedJson)) as DatabaseSchema;
+      }
         // Refresh salaries demo data if old format or missing months
         if (!parsed.salaries || parsed.salaries.length < 50 || parsed.salaries.some((s) => s.month === '2026-09')) {
           parsed.salaries = this.generateInitialSalaries();
@@ -554,7 +568,6 @@ class PetWorldDatabase {
         }
         this.persist(parsed);
         return parsed;
-      }
     } catch (e) {
       console.warn('Could not read saved database, loading defaults:', e);
     }
