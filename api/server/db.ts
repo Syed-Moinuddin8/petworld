@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { createClient } from '@supabase/supabase-js';
 import type {
   Branch,
   Product,
@@ -35,6 +36,11 @@ import {
 } from './data.ts';
 import { resolveProductImageUrl } from './productImages.ts';
 import initialSeedJson from '../../data/petworld_db.json';
+
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://iltzmqlgphgrugwgaovw.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlsdHptcWxncGhncnVnd2dhb3Z3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNTM2MzUsImV4cCI6MjEwNDkyOTYzNX0.N-zxG9b6BHA_htEdW6qmw54I8G8yvJ6Y2oILbllZxAM';
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 interface DatabaseSchema {
   branches: Branch[];
@@ -96,15 +102,521 @@ class PetWorldDatabase {
     } catch (err) {
       console.error('Error during rebuildBarcodeIndex:', err);
     }
+    // Asynchronously sync from Supabase PostgreSQL tables
+    this.loadFromSupabase().catch((err) => {
+      console.warn('Async initial load from Supabase completed with warning:', err);
+    });
   }
 
-  public rebuildBarcodeIndex(): void {
-    this.barcodeIndex.clear();
-    for (const p of this.data.products) {
-      if (p.barcode) {
-        this.barcodeIndex.set(p.barcode.trim().toLowerCase(), p);
+  public async loadFromSupabase(): Promise<boolean> {
+    try {
+      const [
+        bRes, pRes, iRes, sRes, stRes, saRes, puRes, pbRes, paRes, smRes, attRes, salRes, nRes, setRes
+      ] = await Promise.all([
+        supabase.from('branches').select('*'),
+        supabase.from('products').select('*'),
+        supabase.from('branch_inventory').select('*'),
+        supabase.from('suppliers').select('*'),
+        supabase.from('staff').select('*'),
+        supabase.from('sales').select('*'),
+        supabase.from('purchases').select('*'),
+        supabase.from('purchase_bills').select('*'),
+        supabase.from('purchase_allocations').select('*'),
+        supabase.from('stock_movements').select('*'),
+        supabase.from('attendance').select('*'),
+        supabase.from('salaries').select('*'),
+        supabase.from('notifications').select('*'),
+        supabase.from('settings').select('*').limit(1),
+      ]);
+
+      let loadedSomething = false;
+
+      if (bRes.data && bRes.data.length > 0) {
+        this.data.branches = bRes.data.map((b: any) => ({
+          id: b.id,
+          code: b.code,
+          name: b.name,
+          address: b.address || '',
+          city: b.city || '',
+          phone: b.phone || '',
+          email: b.email || '',
+          managerName: b.manager_name || '',
+          status: b.status || 'ACTIVE',
+          openingDate: b.opening_date || '',
+          taxRate: Number(b.tax_rate) || 18,
+          gstin: b.gstin || '',
+        }));
+        loadedSomething = true;
       }
+
+      if (pRes.data && pRes.data.length > 0) {
+        this.data.products = pRes.data.map((p: any) => ({
+          id: p.id,
+          sku: p.sku,
+          barcode: p.barcode || '',
+          name: p.name,
+          category: p.category || '',
+          brand: p.brand || '',
+          company: p.company || '',
+          unit: p.unit || 'piece',
+          productForm: p.product_form || 'DRIED',
+          purchasePrice: Number(p.purchase_price) || 0,
+          costPrice: Number(p.purchase_price) || 0,
+          sellingPrice: Number(p.selling_price) || 0,
+          mrp: Number(p.mrp) || Number(p.selling_price) || 0,
+          taxPercent: Number(p.tax_percent) || 18,
+          minStockLevel: Number(p.min_stock_level) || 5,
+          reorderLevel: Number(p.reorder_level) || 10,
+          supplierId: p.supplier_id || '',
+          supplierName: p.supplier_name || '',
+          avatarType: p.avatar_type || 'dog',
+          imageUrl: p.image_url || resolveProductImageUrl(p),
+          status: p.status || 'ACTIVE',
+        }));
+        this.rebuildBarcodeIndex();
+        loadedSomething = true;
+      }
+
+      if (iRes.data && iRes.data.length > 0) {
+        this.data.inventory = iRes.data.map((i: any) => ({
+          branchId: i.branch_id,
+          productId: i.product_id,
+          quantity: Number(i.quantity) || 0,
+          lastUpdated: i.last_updated || new Date().toISOString(),
+        }));
+        loadedSomething = true;
+      }
+
+      if (sRes.data && sRes.data.length > 0) {
+        this.data.suppliers = sRes.data.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          contactPerson: s.contact_person || '',
+          phone: s.phone || '',
+          email: s.email || '',
+          city: s.city || '',
+          address: s.address || '',
+          gstin: s.gstin || '',
+          paymentTerms: s.payment_terms || '',
+          rating: Number(s.rating) || 5,
+        }));
+        loadedSomething = true;
+      }
+
+      if (stRes.data && stRes.data.length > 0) {
+        this.data.staff = stRes.data.map((st: any) => ({
+          id: st.id,
+          staffCode: st.staff_code || '',
+          username: st.username,
+          name: st.name,
+          designation: st.designation || '',
+          role: st.role || 'CASHIER',
+          branchId: st.branch_id || '',
+          branchName: st.branch_name || '',
+          phone: st.phone || '',
+          email: st.email || '',
+          basicSalary: Number(st.basic_salary) || 0,
+          joiningDate: st.joining_date || '',
+          status: st.status || 'ACTIVE',
+          avatarType: st.avatar_type || 'cashier',
+        }));
+        loadedSomething = true;
+      }
+
+      if (saRes.data && saRes.data.length > 0) {
+        this.data.sales = saRes.data.map((s: any) => ({
+          id: s.id,
+          invoiceNumber: s.invoice_number,
+          branchId: s.branch_id,
+          branchName: s.branch_name,
+          staffId: s.staff_id,
+          staffName: s.staff_name,
+          customerName: s.customer_name,
+          customerPhone: s.customer_phone,
+          subtotal: Number(s.subtotal) || 0,
+          taxAmount: Number(s.tax_amount) || 0,
+          grandTotal: Number(s.grand_total) || 0,
+          paymentMethod: s.payment_method,
+          date: s.date,
+          time: s.time,
+          timestamp: Number(s.timestamp) || Date.now(),
+          status: s.status,
+          items: s.items || [],
+        }));
+        loadedSomething = true;
+      }
+
+      if (puRes.data && puRes.data.length > 0) {
+        this.data.purchases = puRes.data.map((pu: any) => ({
+          id: pu.id,
+          purchaseNumber: pu.purchase_number,
+          supplierId: pu.supplier_id,
+          supplierName: pu.supplier_name,
+          purchaseDate: pu.purchase_date,
+          branchId: pu.branch_id,
+          branchName: pu.branch_name,
+          subtotal: Number(pu.subtotal) || 0,
+          taxAmount: Number(pu.tax_amount) || 0,
+          grandTotal: Number(pu.grand_total) || 0,
+          paymentStatus: pu.payment_status,
+          status: pu.status,
+          items: pu.items || [],
+        }));
+      }
+
+      if (pbRes.data && pbRes.data.length > 0) {
+        this.data.purchaseBills = pbRes.data.map((pb: any) => ({
+          id: pb.id,
+          billNumber: pb.bill_number,
+          purchaseId: pb.purchase_id,
+          purchaseReference: pb.purchase_reference,
+          supplierId: pb.supplier_id,
+          supplierName: pb.supplier_name,
+          invoiceDate: pb.invoice_date,
+          invoiceAmount: Number(pb.invoice_amount) || 0,
+          paymentStatus: pb.payment_status,
+          fileName: pb.file_name,
+          fileUrl: pb.file_url,
+          notes: pb.notes,
+        }));
+      }
+
+      if (paRes.data && paRes.data.length > 0) {
+        this.data.purchaseAllocations = paRes.data.map((pa: any) => ({
+          id: pa.id,
+          purchaseId: pa.purchase_id,
+          purchaseNumber: pa.purchase_number,
+          productId: pa.product_id,
+          productName: pa.product_name,
+          sku: pa.sku,
+          totalPurchased: Number(pa.total_purchased) || 0,
+          allocations: pa.allocations || [],
+          allocatedBy: pa.allocated_by,
+          date: pa.date,
+          time: pa.time,
+          timestamp: Number(pa.timestamp) || Date.now(),
+          notes: pa.notes,
+        }));
+      }
+
+      if (smRes.data && smRes.data.length > 0) {
+        this.data.stockMovements = smRes.data.map((sm: any) => ({
+          id: sm.id,
+          productId: sm.product_id,
+          productName: sm.product_name,
+          sku: sm.sku,
+          branchId: sm.branch_id,
+          branchName: sm.branch_name,
+          previousQuantity: Number(sm.previous_quantity) || 0,
+          quantityAdded: Number(sm.quantity_added) || 0,
+          quantityRemoved: Number(sm.quantity_removed) || 0,
+          newQuantity: Number(sm.new_quantity) || 0,
+          operationType: sm.operation_type,
+          reason: sm.reason,
+          referenceNumber: sm.reference_number,
+          userName: sm.user_name,
+          userRole: sm.user_role,
+          date: sm.date,
+          time: sm.time,
+          timestamp: Number(sm.timestamp) || Date.now(),
+        }));
+      }
+
+      if (attRes.data && attRes.data.length > 0) {
+        this.data.attendance = attRes.data.map((att: any) => ({
+          id: att.id,
+          date: att.date,
+          staffId: att.staff_id,
+          staffName: att.staff_name,
+          branchId: att.branch_id,
+          branchName: att.branch_name,
+          loginTime: att.login_time,
+          logoutTime: att.logout_time,
+          status: att.status,
+          remarks: att.remarks,
+        }));
+      }
+
+      if (salRes.data && salRes.data.length > 0) {
+        this.data.salaries = salRes.data.map((sal: any) => ({
+          id: sal.id,
+          staffId: sal.staff_id,
+          staffName: sal.staff_name,
+          branchId: sal.branch_id,
+          branchName: sal.branch_name,
+          month: sal.month,
+          basicSalary: Number(sal.basic_salary) || 0,
+          allowances: Number(sal.allowances) || 0,
+          deductions: Number(sal.deductions) || 0,
+          bonus: Number(sal.bonus) || 0,
+          overtime: Number(sal.overtime) || 0,
+          advance: Number(sal.advance) || 0,
+          netSalary: Number(sal.net_salary) || 0,
+          paymentStatus: sal.payment_status,
+          paymentDate: sal.payment_date,
+          paymentMode: sal.payment_mode,
+          transactionRef: sal.transaction_ref,
+          advances: sal.advances || [],
+        }));
+      }
+
+      if (nRes.data && nRes.data.length > 0) {
+        this.data.notifications = nRes.data.map((n: any) => ({
+          id: n.id,
+          title: n.title,
+          message: n.message,
+          type: n.type,
+          timestamp: Number(n.timestamp) || Date.now(),
+          read: Boolean(n.read),
+          branchId: n.branch_id,
+        }));
+      }
+
+      if (setRes.data && setRes.data.length > 0) {
+        const set = setRes.data[0];
+        this.data.settings = {
+          businessName: set.business_name || INITIAL_SETTINGS.businessName,
+          tagline: set.tagline || INITIAL_SETTINGS.tagline,
+          headOfficeAddress: set.head_office_address || INITIAL_SETTINGS.headOfficeAddress,
+          headOfficePhone: set.head_office_phone || INITIAL_SETTINGS.headOfficePhone,
+          gstin: set.gstin || INITIAL_SETTINGS.gstin,
+          invoicePrefix: set.invoice_prefix || INITIAL_SETTINGS.invoicePrefix,
+          receiptFooter: set.receipt_footer || INITIAL_SETTINGS.receiptFooter,
+          thermalWidth: set.thermal_width || INITIAL_SETTINGS.thermalWidth,
+          currencySymbol: set.currency_symbol || INITIAL_SETTINGS.currencySymbol,
+          defaultTaxRate: Number(set.default_tax_rate) || INITIAL_SETTINGS.defaultTaxRate,
+        };
+      }
+
+      return loadedSomething;
+    } catch (err) {
+      console.warn('Failed to load from Supabase:', err);
+      return false;
     }
+  }
+
+  public async syncToSupabase(dataToSync = this.data): Promise<void> {
+    try {
+      if (dataToSync.branches && dataToSync.branches.length > 0) {
+        await supabase.from('branches').upsert(dataToSync.branches.map((b) => ({
+          id: b.id,
+          code: b.code,
+          name: b.name,
+          address: b.address,
+          city: b.city,
+          phone: b.phone,
+          email: b.email,
+          manager_name: b.managerName,
+          status: b.status,
+          opening_date: b.openingDate,
+          tax_rate: b.taxRate,
+          gstin: b.gstin,
+        })));
+      }
+
+      if (dataToSync.products && dataToSync.products.length > 0) {
+        await supabase.from('products').upsert(dataToSync.products.map((p) => ({
+          id: p.id,
+          sku: p.sku,
+          barcode: p.barcode,
+          name: p.name,
+          category: p.category,
+          brand: p.brand,
+          company: p.company,
+          unit: p.unit,
+          product_form: p.productForm,
+          purchase_price: p.purchasePrice,
+          selling_price: p.sellingPrice,
+          mrp: p.mrp,
+          tax_percent: p.taxPercent,
+          min_stock_level: p.minStockLevel,
+          reorder_level: p.reorderLevel,
+          supplier_id: p.supplierId,
+          supplier_name: p.supplierName,
+          avatar_type: p.avatarType,
+          image_url: p.imageUrl,
+          status: p.status,
+        })));
+      }
+
+      if (dataToSync.inventory && dataToSync.inventory.length > 0) {
+        await supabase.from('branch_inventory').upsert(dataToSync.inventory.map((i) => ({
+          id: `inv-${i.branchId}-${i.productId}`,
+          branch_id: i.branchId,
+          product_id: i.productId,
+          quantity: i.quantity,
+          last_updated: i.lastUpdated || new Date().toISOString(),
+        })));
+      }
+
+      if (dataToSync.sales && dataToSync.sales.length > 0) {
+        await supabase.from('sales').upsert(dataToSync.sales.map((s) => ({
+          id: s.id,
+          invoice_number: s.invoiceNumber,
+          branch_id: s.branchId,
+          branch_name: s.branchName,
+          staff_id: s.staffId,
+          staff_name: s.staffName,
+          customer_name: s.customerName,
+          customer_phone: s.customerPhone,
+          subtotal: s.subtotal,
+          tax_amount: s.taxAmount,
+          grand_total: s.grandTotal,
+          payment_method: s.paymentMethod,
+          date: s.date,
+          time: s.time,
+          timestamp: s.timestamp,
+          status: s.status,
+          items: s.items,
+        })));
+      }
+
+      if (dataToSync.staff && dataToSync.staff.length > 0) {
+        await supabase.from('staff').upsert(dataToSync.staff.map((st) => ({
+          id: st.id,
+          staff_code: st.staffCode,
+          username: st.username,
+          name: st.name,
+          designation: st.designation,
+          role: st.role,
+          branch_id: st.branchId,
+          branch_name: st.branchName,
+          phone: st.phone,
+          email: st.email,
+          basic_salary: st.basicSalary,
+          joining_date: st.joiningDate,
+          status: st.status,
+          avatar_type: st.avatarType,
+        })));
+      }
+
+      if (dataToSync.suppliers && dataToSync.suppliers.length > 0) {
+        await supabase.from('suppliers').upsert(dataToSync.suppliers.map((sup) => ({
+          id: sup.id,
+          name: sup.name,
+          contact_person: sup.contactPerson,
+          phone: sup.phone,
+          email: sup.email,
+          city: sup.city,
+          address: sup.address,
+          gstin: sup.gstin,
+          payment_terms: sup.paymentTerms,
+          rating: sup.rating,
+        })));
+      }
+
+      if (dataToSync.purchases && dataToSync.purchases.length > 0) {
+        await supabase.from('purchases').upsert(dataToSync.purchases.map((pu) => ({
+          id: pu.id,
+          purchase_number: pu.purchaseNumber,
+          supplier_id: pu.supplierId,
+          supplier_name: pu.supplierName,
+          purchase_date: pu.purchaseDate,
+          branch_id: pu.branchId,
+          branch_name: pu.branchName,
+          subtotal: pu.subtotal,
+          tax_amount: pu.taxAmount,
+          grand_total: pu.grandTotal,
+          payment_status: pu.paymentStatus,
+          status: pu.status,
+          items: pu.items,
+        })));
+      }
+
+      if (dataToSync.attendance && dataToSync.attendance.length > 0) {
+        await supabase.from('attendance').upsert(dataToSync.attendance.map((att) => ({
+          id: att.id,
+          date: att.date,
+          staff_id: att.staffId,
+          staff_name: att.staffName,
+          branch_id: att.branchId,
+          branch_name: att.branchName,
+          login_time: att.loginTime,
+          logout_time: att.logoutTime,
+          status: att.status,
+          remarks: att.remarks,
+        })));
+      }
+
+      if (dataToSync.salaries && dataToSync.salaries.length > 0) {
+        await supabase.from('salaries').upsert(dataToSync.salaries.map((sal) => ({
+          id: sal.id,
+          staff_id: sal.staffId,
+          staff_name: sal.staffName,
+          branch_id: sal.branchId,
+          branch_name: sal.branchName,
+          month: sal.month,
+          basic_salary: sal.basicSalary,
+          allowances: sal.allowances,
+          deductions: sal.deductions,
+          bonus: sal.bonus,
+          overtime: sal.overtime,
+          advance: sal.advance,
+          net_salary: sal.netSalary,
+          payment_status: sal.paymentStatus,
+          payment_date: sal.paymentDate,
+          payment_mode: sal.paymentMode,
+          transaction_ref: sal.transactionRef,
+          advances: sal.advances,
+        })));
+      }
+
+      if (dataToSync.stockMovements && dataToSync.stockMovements.length > 0) {
+        await supabase.from('stock_movements').upsert(dataToSync.stockMovements.map((sm) => ({
+          id: sm.id,
+          product_id: sm.productId,
+          product_name: sm.productName,
+          sku: sm.sku,
+          branch_id: sm.branchId,
+          branch_name: sm.branchName,
+          previous_quantity: sm.previousQuantity,
+          quantity_added: sm.quantityAdded,
+          quantity_removed: sm.quantityRemoved,
+          new_quantity: sm.newQuantity,
+          operation_type: sm.operationType,
+          reason: sm.reason,
+          reference_number: sm.referenceNumber,
+          user_name: sm.userName,
+          user_role: sm.userRole,
+          date: sm.date,
+          time: sm.time,
+          timestamp: sm.timestamp,
+        })));
+      }
+
+      if (dataToSync.settings) {
+        await supabase.from('settings').upsert([{
+          id: 'app_settings',
+          business_name: dataToSync.settings.businessName,
+          tagline: dataToSync.settings.tagline,
+          head_office_address: dataToSync.settings.headOfficeAddress,
+          head_office_phone: dataToSync.settings.headOfficePhone,
+          gstin: dataToSync.settings.gstin,
+          invoice_prefix: dataToSync.settings.invoicePrefix,
+          receipt_footer: dataToSync.settings.receiptFooter,
+          thermal_width: dataToSync.settings.thermalWidth,
+          currency_symbol: dataToSync.settings.currencySymbol,
+          default_tax_rate: dataToSync.settings.defaultTaxRate,
+        }]);
+      }
+    } catch (err) {
+      console.warn('Failed to sync to Supabase:', err);
+    }
+  }
+
+  private persist(dataToPersist = this.data): void {
+    try {
+      if (!fs.existsSync(DB_DIR)) {
+        fs.mkdirSync(DB_DIR, { recursive: true });
+      }
+      fs.writeFileSync(DB_FILE, JSON.stringify(dataToPersist, null, 2), 'utf-8');
+    } catch (e) {
+      // Local disk persistence fallback
+    }
+    // Persist changes to Supabase PostgreSQL database
+    this.syncToSupabase(dataToPersist).catch((err) => {
+      console.warn('Supabase persist sync warning:', err);
+    });
   }
 
   private generateInitialAttendance(): AttendanceRecord[] {
@@ -595,17 +1107,6 @@ class PetWorldDatabase {
 
     this.persist(defaultData);
     return defaultData;
-  }
-
-  private persist(dataToPersist = this.data): void {
-    try {
-      if (!fs.existsSync(DB_DIR)) {
-        fs.mkdirSync(DB_DIR, { recursive: true });
-      }
-      fs.writeFileSync(DB_FILE, JSON.stringify(dataToPersist, null, 2), 'utf-8');
-    } catch (e) {
-      console.error('Failed to write database file:', e);
-    }
   }
 
   // ACID Transaction Methods

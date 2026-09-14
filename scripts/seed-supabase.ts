@@ -138,6 +138,139 @@ async function seed() {
     })));
   }
 
+  if (data.purchases) {
+    console.log(`Pushing ${data.purchases.length} purchases...`);
+    await supabase.from('purchases').upsert(data.purchases.map((pu: any) => ({
+      id: pu.id,
+      purchase_number: pu.purchaseNumber,
+      supplier_id: pu.supplierId,
+      supplier_name: pu.supplierName,
+      purchase_date: pu.purchaseDate,
+      branch_id: pu.branchId,
+      branch_name: pu.branchName,
+      subtotal: pu.subtotal,
+      tax_amount: pu.taxAmount,
+      grand_total: pu.grandTotal,
+      payment_status: pu.paymentStatus,
+      status: pu.status,
+      items: pu.items,
+    })));
+  }
+
+  if (data.purchaseBills) {
+    console.log(`Pushing ${data.purchaseBills.length} purchase bills...`);
+    await supabase.from('purchase_bills').upsert(data.purchaseBills.map((pb: any) => ({
+      id: pb.id,
+      bill_number: pb.billNumber,
+      purchase_id: pb.purchaseId,
+      purchase_reference: pb.purchaseReference,
+      supplier_id: pb.supplierId,
+      supplier_name: pb.supplierName,
+      invoice_date: pb.invoiceDate,
+      invoice_amount: pb.invoiceAmount,
+      payment_status: pb.paymentStatus,
+      file_name: pb.fileName,
+      file_url: pb.fileUrl,
+      notes: pb.notes,
+    })));
+  }
+
+  if (data.purchaseAllocations) {
+    console.log(`Pushing ${data.purchaseAllocations.length} purchase allocations...`);
+    await supabase.from('purchase_allocations').upsert(data.purchaseAllocations.map((pa: any) => ({
+      id: pa.id,
+      purchase_id: pa.purchaseId,
+      purchase_number: pa.purchaseNumber,
+      product_id: pa.productId,
+      product_name: pa.productName,
+      sku: pa.sku,
+      total_purchased: pa.totalPurchased,
+      allocations: pa.allocations,
+      allocated_by: pa.allocatedBy,
+      date: pa.date,
+      time: pa.time,
+      timestamp: pa.timestamp,
+      notes: pa.notes,
+    })));
+  }
+
+  if (data.stockMovements) {
+    console.log(`Pushing ${data.stockMovements.length} stock movements...`);
+    await supabase.from('stock_movements').upsert(data.stockMovements.map((sm: any) => ({
+      id: sm.id,
+      product_id: sm.productId,
+      product_name: sm.productName,
+      sku: sm.sku,
+      branch_id: sm.branchId,
+      branch_name: sm.branchName,
+      previous_quantity: sm.previousQuantity,
+      quantity_added: sm.quantityAdded,
+      quantity_removed: sm.quantityRemoved,
+      new_quantity: sm.newQuantity,
+      operation_type: sm.operationType,
+      reason: sm.reason,
+      reference_number: sm.referenceNumber,
+      user_name: sm.userName,
+      user_role: sm.userRole,
+      date: sm.date,
+      time: sm.time,
+      timestamp: sm.timestamp,
+    })));
+  }
+
+  if (data.attendance) {
+    console.log(`Pushing ${data.attendance.length} attendance records...`);
+    await supabase.from('attendance').upsert(data.attendance.map((att: any) => ({
+      id: att.id,
+      date: att.date,
+      staff_id: att.staffId,
+      staff_name: att.staffName,
+      branch_id: att.branchId,
+      branch_name: att.branchName,
+      login_time: att.loginTime,
+      logout_time: att.logoutTime,
+      status: att.status,
+      remarks: att.remarks,
+    })));
+  }
+
+  if (data.salaries) {
+    console.log(`Pushing ${data.salaries.length} salary records...`);
+    await supabase.from('salaries').upsert(data.salaries.map((sal: any) => ({
+      id: sal.id,
+      staff_id: sal.staffId,
+      staff_name: sal.staffName,
+      branch_id: sal.branchId,
+      branch_name: sal.branchName,
+      month: sal.month,
+      basic_salary: sal.basicSalary,
+      allowances: sal.allowances,
+      deductions: sal.deductions,
+      bonus: sal.bonus,
+      overtime: sal.overtime,
+      advance: sal.advance,
+      net_salary: sal.netSalary,
+      payment_status: sal.paymentStatus,
+      payment_date: sal.paymentDate,
+      payment_mode: sal.paymentMode,
+      transaction_ref: sal.transactionRef,
+      advances: sal.advances,
+    })));
+  }
+
+  if (data.notifications) {
+    console.log(`Pushing ${data.notifications.length} notifications...`);
+    await supabase.from('notifications').upsert(data.notifications.map((n: any) => ({
+      id: n.id,
+      title: n.title,
+      message: n.message,
+      type: n.type,
+      timestamp: n.timestamp,
+      read: n.read,
+      branch_id: n.branchId,
+    })));
+  }
+
   if (data.settings) {
     console.log('Pushing application settings...');
     await supabase.from('settings').upsert([{
@@ -161,4 +294,5 @@ async function seed() {
 seed().catch((err) => {
   console.error('Error seeding to Supabase:', err);
 });
+
 
