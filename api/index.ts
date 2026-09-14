@@ -1,7 +1,8 @@
-import app from '../expressServer.js';
-
-export default function handler(req: any, res: any) {
+export default async function handler(req: any, res: any) {
   try {
+    const serverModule = await import('../expressServer.js');
+    const app = serverModule.default || serverModule;
+
     const rawUrl = (req.headers['x-forwarded-uri'] as string) || (req.headers['x-rewrite-url'] as string) || req.url;
     if (rawUrl) {
       req.url = rawUrl;
