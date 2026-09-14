@@ -21,6 +21,15 @@ try {
 }
 app.use('/uploads', express.static(uploadsDir));
 
+// Restore original requested path from Vercel rewrite headers
+app.use((req, res, next) => {
+  const originalUrl = (req.headers['x-forwarded-uri'] as string) || (req.headers['x-rewrite-url'] as string);
+  if (originalUrl) {
+    req.url = originalUrl;
+  }
+  next();
+});
+
 // CORS headers for iframe / cross-origin preview support
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -1065,6 +1074,11 @@ app.put('/api/settings', (req, res) => {
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }
+});
+
+// Fallback 404 handler for unmatched API routes
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: `API route not found: ${req.originalUrl || req.url}` });
 });
 
 // Start Express + Vite Server

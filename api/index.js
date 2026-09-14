@@ -4788,6 +4788,13 @@ try {
 }
 app.use("/uploads", express.static(uploadsDir));
 app.use((req, res, next) => {
+  const originalUrl = req.headers["x-forwarded-uri"] || req.headers["x-rewrite-url"];
+  if (originalUrl) {
+    req.url = originalUrl;
+  }
+  next();
+});
+app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-user-id, x-user-role, x-user-branch-id");
@@ -5683,6 +5690,9 @@ app.put("/api/settings", (req, res) => {
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
+});
+app.use("/api", (req, res) => {
+  res.status(404).json({ error: `API route not found: ${req.originalUrl || req.url}` });
 });
 async function startServer() {
   const isVercel = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV) || Boolean(process.env.VERCEL_REGION) || Boolean(process.env.NOW_REGION);
