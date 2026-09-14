@@ -108,6 +108,17 @@ class PetWorldDatabase {
     });
   }
 
+  public rebuildBarcodeIndex(): void {
+    this.barcodeIndex.clear();
+    if (this.data && Array.isArray(this.data.products)) {
+      for (const p of this.data.products) {
+        if (p.barcode) {
+          this.barcodeIndex.set(p.barcode.trim().toLowerCase(), p);
+        }
+      }
+    }
+  }
+
   public async loadFromSupabase(): Promise<boolean> {
     try {
       const [

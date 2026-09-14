@@ -91,6 +91,11 @@ export function notifyClients(eventType = 'DATA_UPDATED') {
 }
 
 app.get('/api/events', (req, res) => {
+  const isVercel = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV) || Boolean(process.env.VERCEL_REGION) || Boolean(process.env.NOW_REGION) || Boolean(process.env.LAMBDA_TASK_ROOT) || process.cwd().startsWith('/var/task');
+  if (isVercel) {
+    return res.status(200).json({ status: 'ok', message: 'SSE polling fallback active on Vercel serverless environment' });
+  }
+
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
@@ -99,11 +104,6 @@ app.get('/api/events', (req, res) => {
 
   // Initial connection heartbeat
   res.write(': connected\n\n');
-
-  const isVercel = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV);
-  if (isVercel) {
-    return res.end();
-  }
 
   sseClients.push(res);
 
