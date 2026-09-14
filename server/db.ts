@@ -53,7 +53,7 @@ interface DatabaseSchema {
   settings: AppSettings;
 }
 
-const isVercelEnv = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV);
+const isVercelEnv = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV) || Boolean(process.env.VERCEL_REGION) || Boolean(process.env.NOW_REGION) || Boolean(process.env.LAMBDA_TASK_ROOT) || process.cwd().startsWith('/var/task');
 const DB_DIR = process.env.DATA_DIR || (isVercelEnv ? '/tmp' : path.join(process.cwd(), 'data'));
 const DB_FILE = path.join(DB_DIR, 'petworld_db.json');
 const READONLY_DB_FILE = path.join(process.cwd(), 'data', 'petworld_db.json');

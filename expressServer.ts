@@ -9,7 +9,7 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
 // Ensure uploads directory exists for file attachments & receipts
-const isVercelEnv = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV);
+const isVercelEnv = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV) || Boolean(process.env.VERCEL_REGION) || Boolean(process.env.NOW_REGION) || Boolean(process.env.LAMBDA_TASK_ROOT) || process.cwd().startsWith('/var/task');
 const baseDataDir = process.env.DATA_DIR || (isVercelEnv ? '/tmp' : process.cwd());
 const uploadsDir = path.join(baseDataDir, 'uploads');
 try {
