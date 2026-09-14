@@ -17,7 +17,7 @@ import {
   NotificationItem,
   AppSettings,
   User,
-} from '../src/types.js';
+} from '../../src/types.js';
 import {
   INITIAL_BRANCHES,
   INITIAL_PRODUCTS,

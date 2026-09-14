@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { db } from './server/db.js';
 import { OWNER_USER } from './server/data.js';
-import { User } from './src/types.js';
+import { User } from '../src/types.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
