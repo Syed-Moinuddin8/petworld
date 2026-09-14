@@ -17,7 +17,7 @@ import {
   NotificationItem,
   AppSettings,
   User,
-} from '../src/types.ts';
+} from '../src/types.js';
 import {
   INITIAL_BRANCHES,
   INITIAL_PRODUCTS,
@@ -32,8 +32,8 @@ import {
   INITIAL_NOTIFICATIONS,
   INITIAL_SETTINGS,
   generateInitialInventory,
-} from './data.ts';
-import { resolveProductImageUrl } from './productImages.ts';
+} from './data.js';
+import { resolveProductImageUrl } from './productImages.js';
 
 interface DatabaseSchema {
   branches: Branch[];
