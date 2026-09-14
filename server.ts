@@ -1,7 +1,6 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
-import { createServer as createViteServer } from 'vite';
 import { db } from './server/db.js';
 import { OWNER_USER } from './server/data.js';
 import { User } from './src/types.js';
@@ -10,10 +9,15 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
 // Ensure uploads directory exists for file attachments & receipts
-const baseDataDir = process.env.DATA_DIR || process.cwd();
+const isVercelEnv = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV);
+const baseDataDir = process.env.DATA_DIR || (isVercelEnv ? '/tmp' : process.cwd());
 const uploadsDir = path.join(baseDataDir, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn('Uploads directory initialization skipped:', err);
 }
 app.use('/uploads', express.static(uploadsDir));
 
@@ -1084,6 +1088,7 @@ async function startServer() {
     });
   } else {
     console.log('⚡ Starting Vite development server middleware');
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
